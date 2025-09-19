@@ -1,14 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:k1s/http.dart';
-import 'package:k1s/job_manager.dart';
-import 'package:shelf/shelf.dart';
-import 'package:shelf/shelf_io.dart';
+import 'package:k1s/server/command_processor.dart';
+import 'package:k1s/server/job_manager.dart';
 import 'package:toml/toml.dart';
 
 void main(List<String> args) async {
-  int port = 1298;
-  String authToken = 'abc123'; // Default token, should be overridden by config file
+  int port = 4567;
 
   int configIndex = args.indexOf('-c');
   if (configIndex != -1 && configIndex + 1 < args.length) {
@@ -19,30 +17,36 @@ void main(List<String> args) async {
     }
     final document = await TomlDocument.load(configPath);
     final toml = document.toMap();
-    if (toml.containsKey('http')) {
-      final serverConfig = toml['http'];
+    if (toml.containsKey('server')) {
+      final serverConfig = toml['server'];
       if (serverConfig is Map<String, dynamic>) {
         if (serverConfig.containsKey('port')) {
           port = serverConfig['port'] as int;
-        }
-        if (serverConfig.containsKey('auth_token')) {
-          authToken = serverConfig['auth_token'] as String;
         }
       }
     }
   }
 
+  final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+  print('Server listening on port ${server.port}');
+
   final jobManager = JobManager();
 
-  final router = Http(jobManager).router;
-
-  // Configure a pipeline that logs requests.
-  final handler = Pipeline()
-      .addMiddleware(logRequests())
-      .addMiddleware(authenticateRequests(token: authToken))
-      .addHandler(router.call);
-
-  // For running in containers, we respect the PORT environment variable.
-  final server = await serve(handler, InternetAddress.anyIPv4, port);
-  print('Server listening on port ${server.port}');
+  await for (final socket in server) {
+    final commandProcessor = CommandProcessor(
+      jobManager,
+      (message) => socket.write(message),
+    );
+    socket.listen((data) async {
+      try {
+        await commandProcessor.process(utf8.decode(data).trim());
+        socket.write('Command processed successfully.\n');
+      } catch (e) {
+        socket.write('Error processing command!\n');
+        print('Error processing command: $e');
+      } finally {
+        socket.close();
+      }
+    });
+  }
 }
