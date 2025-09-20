@@ -1,140 +1,100 @@
 # k1s
 
-k1s is a lightweight process supervisor exposed over a REST API. It lets you register background jobs, inspect their status and history, and control long-running or scheduled processes from anywhere you can send HTTP requests.
+k1s is a lightweight job orchestration server and CLI client written in Dart. The server exposes a JSON-over-TCP interface for managing local processes, while the client offers a convenient command-line wrapper around the available operations.
 
 ## Features
-- Manage three job categories: continuous daemons, one-off tasks, and cron-style scheduled jobs
-- Inspect job metadata, recent exit codes, and captured stdout/stderr for each execution
-- Kill or remove jobs remotely with authenticated API calls
-- Configure the listening port and bearer token with a TOML config file
-- Built on the Dart `shelf` stack for easy extension and deployment
+- Launch local executables as managed jobs with one-time, periodic, or continuous restart semantics.
+- Collect stdout, stderr, and error messages into log files per job.
+- Control jobs over a simple TCP socket using structured commands.
+- Configure the server port with a TOML file or command-line flags.
 
 ## Prerequisites
-- Dart SDK ^3.9.0 ([install instructions](https://dart.dev/get-dart))
+- Dart SDK ^3.9.0 (install from https://dart.dev/get-dart)
 
-## Getting Started
-1. Install dependencies:
-   ```sh
-   dart pub get
-   ```
-2. (Optional) Create a configuration file, e.g. `config/dev.toml`:
-   ```toml
-   [http]
-   port = 8080
-   auth_token = "change-me"
-   ```
-3. Start the supervisor:
-   ```sh
-   dart run bin/server.dart -c config/dev.toml
-   ```
-   If no config is provided the server listens on port `1298` with the default token `abc123`.
+Run `dart pub get` at the repository root before invoking the server or client so dependencies are cached.
 
-## Authentication
-Every request must include a bearer token matching the configured value:
-```
-Authorization: Bearer <token>
-```
-Requests without the header or with an incorrect token receive `403` responses.
+## Configuration
+The server listens on `127.0.0.1:4567` by default. You can override the port with a TOML configuration file:
 
-## Job Types
-| Type | Description | Key fields |
-|------|-------------|------------|
-| `continuous` | Starts a long-lived process and restarts it until `kill` is requested. | `restartOnFailure` (defaults to `true`), `executable`, `arguments`, `environment`, `workingDirectory` |
-| `one-off` | Executes the process once and stores the result. | `executable`, `arguments`, `environment`, `workingDirectory` |
-| `cron` | Runs the process periodically using a repeating timer. | `scheduleInSeconds` (defaults to `60`), `executable`, `arguments`, `environment`, `workingDirectory` |
-
-All job types capture stdout, stderr, and exit code for each run in the `results` array.
-Continuous jobs currently respawn immediately after each exit until you issue a kill; the `restartOnFailure` flag is persisted for clients and can drive stricter policies in future revisions.
-
-## REST API
-Base URL defaults to `http://localhost:1298`.
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | List every registered job. |
-| `GET` | `/job/{id}` | Fetch a single job by identifier. |
-| `POST` | `/job/{id}` | Create a job with the provided payload. Fails if the id already exists. |
-| `PUT` | `/job/{id}/kill` | Request termination for long-running jobs (continuous or cron). |
-| `DELETE` | `/job/{id}` | Remove a job. Continuous and cron jobs are killed prior to removal. |
-
-### Job object schema
-Example response body for a continuous job queried via `GET /job/{id}`:
-```json
-{
-  "id": "api-server",
-  "executable": "/usr/local/bin/node",
-  "arguments": ["server.js"],
-  "workingDirectory": "/opt/services",
-  "environment": {"NODE_ENV": "production"},
-  "restartOnFailure": true,
-  "killRequested": false,
-  "results": [
-    {
-      "exitCode": 0,
-      "stdout": "Server ready\n",
-      "stderr": ""
-    }
-  ]
-}
-```
-Fields specific to a job type are only present when relevant: `restartOnFailure`/`killRequested` for continuous jobs, `schedule`/`killRequested` for cron jobs.
-
-### Create job payloads
-`POST /job/{id}` accepts JSON payloads matching the job type:
-
-**Continuous job**
-```json
-{
-  "type": "continuous",
-  "executable": "/usr/local/bin/node",
-  "arguments": ["server.js"],
-  "workingDirectory": "/opt/services",
-  "environment": {"NODE_ENV": "production"},
-  "restartOnFailure": true
-}
+```toml
+# config.toml
+[server]
+port = 6000
 ```
 
-**One-off job**
-```json
-{
-  "type": "one-off",
-  "executable": "/usr/bin/python3",
-  "arguments": ["scripts/report.py"],
-  "workingDirectory": "/home/user/app",
-  "environment": {"PYTHONPATH": "lib"}
-}
+Start the server with the config file using the `-c` flag:
+
+```sh
+dart run bin/server.dart -c config.toml
 ```
 
-**Cron job**
-```json
-{
-  "type": "cron",
-  "executable": "/usr/bin/backup",
-  "arguments": ["--full"],
-  "workingDirectory": "/var/tasks",
-  "environment": {},
-  "scheduleInSeconds": 300
-}
+If the config file is omitted, the default port is used.
+
+## Running the server
+Launch the server from the project root:
+
+```sh
+dart run bin/server.dart
 ```
 
-### Kill or delete jobs
-- `PUT /job/{id}/kill` returns `{ "message": "Kill requested for job <id>" }` when successful.
-- `DELETE /job/{id}` removes the job (and kills it first when necessary) and returns the same message format.
+The server prints the port it is listening on and waits for client connections. Each client connection is handled sequentially; the socket closes once the command finishes processing.
 
-Errors are reported as JSON payloads containing an `error` field and proper HTTP status codes (`400`, `403`, `404`).
+## Client usage
+The CLI client wraps the supported commands. Common flags:
 
-## Development
-- Run linting: `dart analyze`
-- Run tests: `dart test`
-- Format code: `dart format lib bin`
+- `-h`, `--host` (default `127.0.0.1`)
+- `-p`, `--port` (default `4567`)
+- `-c`, `--command` (required; one of the commands listed below)
+- `-i`, `--id` (job identifier, required by several commands)
 
-## Deployment Notes
-The server listens on all IPv4 interfaces, making it suitable for containerized deployments. Set the `PORT` environment variable when running in managed hosting that injects a port at runtime.
+### Supported commands
+- `get-all-jobs` — return a JSON array describing all tracked jobs.
+- `get-job-by-id` — return details for a single job. Requires `-i <job-id>`.
+- `create-job` — register and start a new job. Requires:
+  - `-i <job-id>` unique identifier
+  - `-t <type>` where `<type>` is `one-time`, `periodic`, or `continuous`
+  - `-x <executable>` absolute or relative path to the program to run
+  - optional: `-a "arg1 arg2"` to pass arguments (split on spaces), `-w <path>` working directory, `-e KEY=VALUE` environment variables (repeatable)
+  - periodic jobs also require `-r <seconds>` for the interval
+  - continuous jobs can set retry count with `-m <maxRetry>`; `-1` retries indefinitely
+- `kill-job` — send a SIGINT to a running continuous or periodic job. Requires `-i <job-id>`.
+- `delete-job` — remove a job and terminate it if still running. Requires `-i <job-id>`.
 
-## Contributing
-1. Fork the repository and create a feature branch.
-2. Run `dart format`, `dart analyze`, and `dart test` before opening a pull request.
-3. Provide clear descriptions of job lifecycle changes or API updates in your PR.
+Example workflow that launches a periodic echo job every 30 seconds:
 
-## License
-This project is licensed under the terms described in [`LICENSE`](LICENSE).
+```sh
+# Start the server (in another terminal)
+dart run bin/server.dart
+
+# Create the job
+dart run bin/client.dart \
+  -c create-job \
+  -i hello-job \
+  -t periodic \
+  -x /bin/echo \
+  -a "hello from k1s" \
+  -r 30
+
+# View all jobs
+dart run bin/client.dart -c get-all-jobs
+
+# Kill the job when done
+dart run bin/client.dart -c kill-job -i hello-job
+```
+
+## Logging
+Every job writes its stdout and stderr streams to files in the server's working directory:
+
+- `stdout_<job-id>.log`
+- `stderr_<job-id>.log`
+- `error_<job-id>.log`
+
+Provide custom file paths in the job payload if you extend the client; otherwise, the defaults above are used. Environment variables supplied with `-e` replace the parent environment, so include any values the executable expects.
+
+## Development notes
+- Jobs are tracked in memory; restarting the server clears all job state.
+- The client/server protocol is JSON encoded on a single line per command.
+- Continuous jobs restart until explicitly killed or the retry budget is exhausted.
+- Periodic jobs keep the schedule until killed or they exceed the retry limit.
+
+Feel free to extend the client or server to support authentication, persistence, or richer telemetry as needed.
