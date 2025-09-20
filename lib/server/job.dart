@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 abstract class Job {
+  bool _killRequested = false;
   final JobType jobType;
   final String id;
   final String executable;
@@ -25,11 +26,29 @@ abstract class Job {
     this.errorLogPath,
   });
 
-  Map<String, dynamic> toJson();
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': jobType.type,
+      'executable': executable,
+      'arguments': arguments,
+      'workingDirectory': workingDirectory,
+      'environment': environment,
+      'stdoutLogPath': stdoutLogPath,
+      'stderrLogPath': stderrLogPath,
+      'errorLogPath': errorLogPath,
+    };
+  }
+
+  void kill({ProcessSignal signal = ProcessSignal.sigint}) {
+    _killRequested = true;
+    process?.kill(signal);
+  }
+
+  bool get killRequested => _killRequested;
 }
 
 class ContinuousJob extends Job {
-  bool _killRequested = false;
   int maxRetry;
   int failedCount = 0;
 
@@ -45,25 +64,12 @@ class ContinuousJob extends Job {
     this.maxRetry = 5,
   }) : super(jobType: JobType.continuous);
 
-  void kill({ProcessSignal signal = ProcessSignal.sigint}) {
-    _killRequested = true;
-    process?.kill(signal);
-  }
-
-  bool get killRequested => _killRequested;
-
   @override
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'executable': executable,
-      'arguments': arguments,
-      'workingDirectory': workingDirectory,
-      'environment': environment,
-      'stdoutLogPath': stdoutLogPath,
-      'stderrLogPath': stderrLogPath,
-      'errorLogPath': errorLogPath,
+      ...super.toJson(),
       'failedCount': failedCount,
+      'maxRetry': maxRetry,
     };
   }
 }
@@ -79,25 +85,10 @@ class OneTimeJob extends Job {
     super.stderrLogPath,
     super.errorLogPath,
   }) : super(jobType: JobType.oneTime);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'executable': executable,
-      'arguments': arguments,
-      'workingDirectory': workingDirectory,
-      'environment': environment,
-      'stdoutLogPath': stdoutLogPath,
-      'stderrLogPath': stderrLogPath,
-      'errorLogPath': errorLogPath,
-    };
-  }
 }
 
 class PeriodicJob extends Job {
   final Duration period;
-  bool _killRequested = false;
   Timer? timer;
   int maxRetry;
   int failedCount = 0;
@@ -115,27 +106,20 @@ class PeriodicJob extends Job {
     super.errorLogPath,
   }) : super(jobType: JobType.periodic);
 
+  @override
   void kill({ProcessSignal signal = ProcessSignal.sigint}) {
     _killRequested = true;
     process?.kill(signal);
     timer?.cancel();
   }
 
-  bool get killRequested => _killRequested;
-
   @override
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'executable': executable,
-      'arguments': arguments,
-      'workingDirectory': workingDirectory,
-      'environment': environment,
-      'stdoutLogPath': stdoutLogPath,
-      'stderrLogPath': stderrLogPath,
-      'errorLogPath': errorLogPath,
+      ...super.toJson(),
       'periodInSeconds': period.inSeconds,
       'failedCount': failedCount,
+      'maxRetry': maxRetry,
     };
   }
 }

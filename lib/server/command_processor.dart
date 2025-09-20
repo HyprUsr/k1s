@@ -97,12 +97,19 @@ class CommandProcessor {
   void _killJob(dynamic command) {
     final jobId = command['jobId'];
     final job = jobManager.jobs[jobId];
-    if (job != null && job is ContinuousJob) {
-      job.kill();
-      writer('${jsonEncode({'message': 'Job killed'})}\n');
+    if (job != null) {
+      if (job is ContinuousJob) {
+        job.kill();
+        writer('${jsonEncode({'message': 'Job killed'})}\n');
+      } else if (job is PeriodicJob) {
+        job.kill();
+        writer('${jsonEncode({'message': 'Job killed'})}\n');
+      } else {
+        writer('${jsonEncode({'error': 'Job is not continuous or periodic'})}\n');
+      }
     } else {
       writer(
-        '${jsonEncode({'error': 'Job not found or not a continuous job'})}\n',
+        '${jsonEncode({'error': 'Job not found'})}\n',
       );
     }
   }

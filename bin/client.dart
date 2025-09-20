@@ -142,7 +142,7 @@ void main(List<String> arguments) async {
 
     // Optionally, read the response from the server
     await for (var data in socket) {
-      print('Server response: ${utf8.decode(data)}');
+      print('${utf8.decode(data)}${Platform.lineTerminator}');
     }
     await socket.close();
   } catch (e) {

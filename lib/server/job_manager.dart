@@ -14,6 +14,7 @@ class JobManager {
 
   void removeJob(Job job) {
     _jobs.remove(job.id);
+    job.kill();
   }
 
   Map<String, Job> get jobs => Map.unmodifiable(_jobs);
@@ -26,34 +27,7 @@ class JobManager {
       while (job.killRequested == false &&
           (job.maxRetry == -1 || job.failedCount < job.maxRetry)) {
         try {
-          job.process = await Process.start(
-            job.executable,
-            job.arguments,
-            workingDirectory: job.workingDirectory,
-            environment: job.environment,
-            includeParentEnvironment: false,
-          );
-
-          // Listen to the process's stdout stream
-          job.process!.stdout.transform(utf8.decoder).listen((data) {
-            stdoutFile.writeAsStringSync(
-              '[${job.id}]: $data${Platform.lineTerminator}',
-              mode: FileMode.append,
-              flush: true,
-            );
-          });
-
-          // Listen to the process's stderr stream
-          job.process!.stderr.transform(utf8.decoder).listen((data) {
-            stderrFile.writeAsStringSync(
-              '[${job.id}]: $data${Platform.lineTerminator}',
-              mode: FileMode.append,
-              flush: true,
-            );
-          });
-
-          // Wait for the process to exit
-          await job.process!.exitCode;
+          await executeFunction(job, stdoutFile, stderrFile);
         } catch (e) {
           job.failedCount += 1;
           errorLogFile.writeAsStringSync(
@@ -65,23 +39,7 @@ class JobManager {
       }
     } else if (job is OneTimeJob) {
       try {
-        final result = await Process.run(
-          job.executable,
-          job.arguments,
-          workingDirectory: job.workingDirectory,
-          environment: job.environment,
-          includeParentEnvironment: false,
-        );
-        stdoutFile.writeAsStringSync(
-          '[${job.id}]: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}',
-          mode: FileMode.append,
-          flush: true,
-        );
-        stderrFile.writeAsStringSync(
-          '[${job.id}]: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}',
-          mode: FileMode.append,
-          flush: true,
-        );
+        await executeFunction(job, stdoutFile, stderrFile);
       } catch (e) {
         errorLogFile.writeAsStringSync(
           '[${job.id}]: $e${Platform.lineTerminator}',
@@ -96,25 +54,7 @@ class JobManager {
           return;
         }
         try {
-          final result = await Process.run(
-            job.executable,
-            job.arguments,
-            workingDirectory: job.workingDirectory,
-            environment: job.environment,
-            includeParentEnvironment: false,
-          );
-          // print('stdout: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}');
-          stdoutFile.writeAsStringSync(
-            '[${job.id}]: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}',
-            mode: FileMode.append,
-            flush: true,
-          );
-          // print('stderr: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}');
-          stderrFile.writeAsStringSync(
-            '[${job.id}]: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}',
-            mode: FileMode.append,
-            flush: true,
-          );
+          await executeFunction(job, stdoutFile, stderrFile);
         } catch (e) {
           errorLogFile.writeAsStringSync(
             '[${job.id}]: $e${Platform.lineTerminator}',
@@ -128,5 +68,40 @@ class JobManager {
         }
       });
     }
+  }
+
+  Future<void> executeFunction(
+    Job job,
+    File stdoutFile,
+    File stderrFile,
+  ) async {
+    job.process = await Process.start(
+      job.executable,
+      job.arguments,
+      workingDirectory: job.workingDirectory,
+      environment: job.environment,
+      includeParentEnvironment: false,
+    );
+
+    // Listen to the process's stdout stream
+    job.process!.stdout.transform(utf8.decoder).listen((data) {
+      stdoutFile.writeAsStringSync(
+        '[${job.id}]: $data${Platform.lineTerminator}',
+        mode: FileMode.append,
+        flush: true,
+      );
+    });
+
+    // Listen to the process's stderr stream
+    job.process!.stderr.transform(utf8.decoder).listen((data) {
+      stderrFile.writeAsStringSync(
+        '[${job.id}]: $data${Platform.lineTerminator}',
+        mode: FileMode.append,
+        flush: true,
+      );
+    });
+
+    // Wait for the process to exit
+    await job.process!.exitCode;
   }
 }
