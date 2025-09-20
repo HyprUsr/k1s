@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:k1s/server/command_processor.dart';
-import 'package:k1s/server/job_manager.dart';
+import 'package:k1s/command_processor.dart';
+import 'package:k1s/job_manager.dart';
 import 'package:toml/toml.dart';
 
 void main(List<String> args) async {

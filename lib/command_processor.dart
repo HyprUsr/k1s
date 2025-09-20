@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:k1s/commands.dart';
-import 'package:k1s/server/job.dart';
-import 'package:k1s/server/job_manager.dart';
+import 'package:k1s/job.dart';
+import 'package:k1s/job_manager.dart';
 
 class CommandProcessor {
   final JobManager jobManager;

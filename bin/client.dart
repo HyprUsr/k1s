@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:args/args.dart';
 import 'package:k1s/commands.dart';
-import 'package:k1s/server/job.dart';
+import 'package:k1s/job.dart';
 
 void main(List<String> arguments) async {
   var parser = ArgParser();

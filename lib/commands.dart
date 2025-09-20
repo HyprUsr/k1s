@@ -1,4 +1,4 @@
-import 'package:k1s/server/job.dart';
+import 'package:k1s/job.dart';
 
 abstract class Command {
   final ClientCommand command;
