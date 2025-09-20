@@ -143,7 +143,9 @@ void main(List<String> arguments) async {
   }
 
   try {
-    final socket = await Socket.connect(InternetAddress.loopbackIPv4, 4567);
+    final host = args.option('host');
+    final port = int.tryParse(args.option('port') ?? '') ?? 4567;
+    final socket = await Socket.connect(host, port);
     socket.write('${jsonEncode(command.toJson())}\n');
     await socket.flush();
 
