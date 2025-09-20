@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:k1s/commands.dart';
 import 'package:k1s/server/job.dart';
 import 'package:k1s/server/job_manager.dart';
 
@@ -13,30 +14,30 @@ class CommandProcessor {
     final command = jsonDecode(rawCommand);
 
     // Process the command based on its action
-    var _ = switch (command['action']) {
-      'get-all-jobs' => _getAllJobs(),
-      'get-job-by-id' => _getJobById(command),
-      'create-job' => _createJob(command),
-      'kill-job' => _killJob(command),
-      'delete-job' => _deleteJob(command),
+    var _ = switch (ClientCommand.fromName(command['command'])) {
+      ClientCommand.getAllJobs => _getAllJobs(),
+      ClientCommand.getJobById => _getJobById(command),
+      ClientCommand.createJob => _createJob(command),
+      ClientCommand.killJob => _killJob(command),
+      ClientCommand.deleteJob => _deleteJob(command),
       _ => writer('Unknown command.\n'),
     };
   }
 
   void _getAllJobs() {
     final jobs = jobManager.jobs.values.map((job) => job.toJson()).toList();
-    writer('${jsonEncode({'all-jobs': jobs})}\n');
+    writer('${jsonEncode(jobs)}\n');
   }
 
   void _getJobById(dynamic command) {
-    final jobId = command['id'];
+    final jobId = command['jobId'];
     if (jobId == null) {
       writer('${jsonEncode({'error': 'Job ID is required'})}\n');
       return;
     }
     final job = jobManager.jobs[jobId];
     if (job != null) {
-      writer('${jsonEncode({'job': job.toJson()})}\n');
+      writer('${jsonEncode(job.toJson())}\n');
     } else {
       writer('${jsonEncode({'error': 'Job not found'})}\n');
     }
@@ -53,6 +54,10 @@ class CommandProcessor {
       writer('${jsonEncode({'error': 'Job ID is required'})}\n');
       return;
     }
+    if (jobManager.jobs.containsKey(jobId)) {
+      writer('${jsonEncode({'error': 'Job ID already exists'})}\n');
+      return;
+    }
 
     Job job;
     if (jobData['type'] == 'continuous') {
@@ -62,10 +67,9 @@ class CommandProcessor {
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
-        restartOnFailure: jobData['restartOnFailure'] ?? true,
       );
     } else if (jobData['type'] == 'one-off') {
-      job = OneOffJob(
+      job = OneTimeJob(
         id: jobData['id'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
@@ -73,7 +77,7 @@ class CommandProcessor {
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
       );
     } else if (jobData['type'] == 'cron') {
-      job = CronJob(
+      job = PeriodicJob(
         id: jobData['id'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
@@ -86,11 +90,11 @@ class CommandProcessor {
       return;
     }
     jobManager.addJob(job);
-    writer('${jsonEncode({'message': 'Job created', 'id': job.id})}\n');
+    writer('${jsonEncode(job)}\n');
   }
 
   void _killJob(dynamic command) {
-    final jobId = command['id'];
+    final jobId = command['jobId'];
     final job = jobManager.jobs[jobId];
     if (job != null && job is ContinuousJob) {
       job.kill();
@@ -103,7 +107,7 @@ class CommandProcessor {
   }
 
   void _deleteJob(dynamic command) {
-    final jobId = command['id'];
+    final jobId = command['jobId'];
     final job = jobManager.jobs[jobId];
     if (job != null) {
       jobManager.removeJob(job);

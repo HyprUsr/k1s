@@ -40,10 +40,10 @@ void main(List<String> args) async {
     socket.listen((data) async {
       try {
         await commandProcessor.process(utf8.decode(data).trim());
-        socket.write('Command processed successfully.\n');
-      } catch (e) {
+      } catch (error, stackTrace) {
         socket.write('Error processing command!\n');
-        print('Error processing command: $e');
+        print('Error processing command: $error');
+        print('Stack trace: $stackTrace');
       } finally {
         socket.close();
       }
