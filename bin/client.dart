@@ -7,9 +7,9 @@ import 'package:k1s/job.dart';
 
 // dart run bin/client.dart -c get-all-jobs
 // dart run bin/client.dart -c get-job-by-id -i job1
-// dart run bin/client.dart -c create-job -i job1 -t one-time -x /path/to/executable -a "arg1 arg2" -w /working/dir -e "KEY1=VALUE1" -e "KEY2=VALUE2"
-// dart run bin/client.dart -c create-job -i job2 -t periodic -x /path/to/executable -a "arg1 arg2" -w /working/dir -r 60 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
-// dart run bin/client.dart -c create-job -i job3 -t continuous -x /path/to/executable -a "arg1 arg2" -w /working/dir -m 5 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c create-job -i job1 -u user1 -t one-time -x /path/to/executable -a "arg1 arg2" -w /working/dir -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c create-job -i job2 -u user2 -t periodic -x /path/to/executable -a "arg1 arg2" -w /working/dir -r 60 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c create-job -i job3 -u user3 -t continuous -x /path/to/executable -a "arg1 arg2" -w /working/dir -m 5 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
 // dart run bin/client.dart -c kill-job -i job3
 // dart run bin/client.dart -c delete-job -i job1
 void main(List<String> arguments) async {
@@ -29,6 +29,7 @@ void main(List<String> arguments) async {
     allowed: ClientCommand.values.map((e) => e.command).toList(),
   );
   parser.addOption('id', abbr: 'i', help: 'Job ID');
+  parser.addOption('asUser', abbr: 'u', help: 'Run job as user');
   parser.addOption(
     'type',
     abbr: 't',
@@ -68,14 +69,18 @@ void main(List<String> arguments) async {
       break;
     case ClientCommand.createJob:
       final jobId = args.option('id');
+      final asUser = args.option('asUser');
       final jobType = JobType.fromType(args.option('type'));
       final executable = args.option('executable');
       final argumentsStr = args.option('arguments') ?? '';
       final workingDirectory = args.option('workingDirectory');
       final environmentList = args.multiOption('environment');
       final periodStr = args.option('period');
-      if (jobId == null || jobType == null || executable == null) {
-        print('Job ID, type, and executable are required.');
+      if (jobId == null ||
+          asUser == null ||
+          jobType == null ||
+          executable == null) {
+        print('Job ID, asUser, type, and executable are required.');
         exit(1);
       }
       final arguments = argumentsStr.split(' ');
@@ -115,6 +120,7 @@ void main(List<String> arguments) async {
 
       command = CreateJobCommand(
         id: jobId,
+        asUser: asUser,
         executable: executable,
         arguments: arguments,
         workingDirectory: workingDirectory,

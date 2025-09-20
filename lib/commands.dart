@@ -37,6 +37,7 @@ abstract class Command {
         }
         return CreateJobCommand(
           id: jobData['id'],
+          asUser: jobData['asUser'],
           executable: jobData['executable'],
           arguments: List<String>.from(jobData['arguments'] ?? []),
           workingDirectory: jobData['workingDirectory'] ?? '',
@@ -92,6 +93,7 @@ final class GetJobByIdCommand extends Command {
 
 final class CreateJobCommand extends Command {
   final String id;
+  final String asUser;
   final String executable;
   final List<String> arguments;
   final String? workingDirectory;
@@ -105,6 +107,7 @@ final class CreateJobCommand extends Command {
 
   CreateJobCommand({
     required this.id,
+    required this.asUser,
     required this.jobType,
     required this.executable,
     this.arguments = const [],
@@ -123,6 +126,7 @@ final class CreateJobCommand extends Command {
       'command': command.name,
       'job': {
         'id': id,
+        'asUser': asUser,
         'executable': executable,
         'arguments': arguments,
         'workingDirectory': workingDirectory,

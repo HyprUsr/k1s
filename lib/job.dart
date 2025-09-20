@@ -5,6 +5,7 @@ abstract class Job {
   bool _killRequested = false;
   final JobType jobType;
   final String id;
+  final String asUser;
   final String executable;
   final List<String> arguments;
   final String? workingDirectory;
@@ -17,6 +18,7 @@ abstract class Job {
   Job({
     required this.jobType,
     required this.id,
+    required this.asUser,
     required this.executable,
     required this.arguments,
     required this.workingDirectory,
@@ -29,6 +31,7 @@ abstract class Job {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'asUser': asUser,
       'type': jobType.type,
       'executable': executable,
       'arguments': arguments,
@@ -54,6 +57,7 @@ class ContinuousJob extends Job {
 
   ContinuousJob({
     required super.id,
+    required super.asUser,
     required super.executable,
     required super.arguments,
     required super.workingDirectory,
@@ -77,6 +81,7 @@ class ContinuousJob extends Job {
 class OneTimeJob extends Job {
   OneTimeJob({
     required super.id,
+    required super.asUser,
     required super.executable,
     required super.arguments,
     required super.workingDirectory,
@@ -95,6 +100,7 @@ class PeriodicJob extends Job {
 
   PeriodicJob({
     required super.id,
+    required super.asUser,
     required super.executable,
     required super.arguments,
     required super.workingDirectory,

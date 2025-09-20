@@ -76,8 +76,8 @@ class JobManager {
     File stderrFile,
   ) async {
     job.process = await Process.start(
-      job.executable,
-      job.arguments,
+      'sudo',
+      ['-u', job.asUser, job.executable, ...job.arguments],
       workingDirectory: job.workingDirectory,
       environment: job.environment,
       includeParentEnvironment: false,

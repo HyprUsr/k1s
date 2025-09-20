@@ -63,6 +63,7 @@ class CommandProcessor {
     if (jobData['type'] == JobType.continuous.type) {
       job = ContinuousJob(
         id: jobData['id'],
+        asUser: jobData['asUser'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],
@@ -72,6 +73,7 @@ class CommandProcessor {
     } else if (jobData['type'] == JobType.oneTime.type) {
       job = OneTimeJob(
         id: jobData['id'],
+        asUser: jobData['asUser'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],
@@ -80,6 +82,7 @@ class CommandProcessor {
     } else if (jobData['type'] == JobType.periodic.type) {
       job = PeriodicJob(
         id: jobData['id'],
+        asUser: jobData['asUser'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],

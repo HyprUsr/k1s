@@ -5,6 +5,7 @@ k1s is a lightweight job orchestration server and CLI client written in Dart. Th
 ## Features
 - Launch local executables as managed jobs with one-time, periodic, or continuous restart semantics.
 - Collect stdout, stderr, and error messages into log files per job.
+- Run each job as a specific local user via `sudo -u` for privilege separation.
 - Control jobs over a simple TCP socket using structured commands.
 - Configure the server port with a TOML file or command-line flags.
 
@@ -46,12 +47,14 @@ The CLI client wraps the supported commands. Common flags:
 - `-p`, `--port` (default `4567`)
 - `-c`, `--command` (required; one of the commands listed below)
 - `-i`, `--id` (job identifier, required by several commands)
+- `-u`, `--asUser` (required for `create-job`; run the job as this system user)
 
 ### Supported commands
 - `get-all-jobs` — return a JSON array describing all tracked jobs.
 - `get-job-by-id` — return details for a single job. Requires `-i <job-id>`.
 - `create-job` — register and start a new job. Requires:
   - `-i <job-id>` unique identifier
+  - `-u <user>` system account the job should run as (invoked with `sudo -u`)
   - `-t <type>` where `<type>` is `one-time`, `periodic`, or `continuous`
   - `-x <executable>` absolute or relative path to the program to run
   - optional: `-a "arg1 arg2"` to pass arguments (split on spaces), `-w <path>` working directory, `-e KEY=VALUE` environment variables (repeatable)
@@ -70,6 +73,7 @@ dart run bin/server.dart
 dart run bin/client.dart \
   -c create-job \
   -i hello-job \
+  -u user1 \
   -t periodic \
   -x /bin/echo \
   -a "hello from k1s" \
@@ -81,6 +85,8 @@ dart run bin/client.dart -c get-all-jobs
 # Kill the job when done
 dart run bin/client.dart -c kill-job -i hello-job
 ```
+
+> **Note:** The server invokes jobs with `sudo -u <user>`. Ensure the account running the server has passwordless sudo access for the target users or appropriate privileges; otherwise job launches will fail.
 
 ## Logging
 Every job writes its stdout and stderr streams to files in the server's working directory:
