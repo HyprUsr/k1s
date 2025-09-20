@@ -9,7 +9,9 @@ abstract class Job {
   final String? workingDirectory;
   final Map<String, String> environment;
   Process? process;
-  List<JobResult> results = [];
+  final String? stdoutLogPath;
+  final String? stderrLogPath;
+  final String? errorLogPath;
 
   Job({
     required this.jobType,
@@ -18,6 +20,9 @@ abstract class Job {
     required this.arguments,
     required this.workingDirectory,
     required this.environment,
+    this.stdoutLogPath,
+    this.stderrLogPath,
+    this.errorLogPath,
   });
 
   Map<String, dynamic> toJson();
@@ -26,7 +31,6 @@ abstract class Job {
 class ContinuousJob extends Job {
   static const int maxFailedCount = 5;
 
-  bool restartOnFailure;
   bool _killRequested = false;
   int failedCount = 0;
 
@@ -36,7 +40,9 @@ class ContinuousJob extends Job {
     required super.arguments,
     required super.workingDirectory,
     required super.environment,
-    this.restartOnFailure = true,
+    super.stdoutLogPath,
+    super.stderrLogPath,
+    super.errorLogPath,
   }) : super(jobType: JobType.continuous);
 
   void kill({ProcessSignal signal = ProcessSignal.sigint}) {
@@ -54,17 +60,10 @@ class ContinuousJob extends Job {
       'arguments': arguments,
       'workingDirectory': workingDirectory,
       'environment': environment,
-      'restartOnFailure': restartOnFailure,
-      'results': results
-          .map(
-            (result) => {
-              'exitCode': result.exitCode,
-              'stdout': result.stdout,
-              'stderr': result.stderr,
-              'error': result.error,
-            },
-          )
-          .toList(),
+      'stdoutLogPath': stdoutLogPath,
+      'stderrLogPath': stderrLogPath,
+      'errorLogPath': errorLogPath,
+      'failedCount': failedCount,
     };
   }
 }
@@ -76,6 +75,9 @@ class OneTimeJob extends Job {
     required super.arguments,
     required super.workingDirectory,
     required super.environment,
+    super.stdoutLogPath,
+    super.stderrLogPath,
+    super.errorLogPath,
   }) : super(jobType: JobType.oneTime);
 
   @override
@@ -86,16 +88,9 @@ class OneTimeJob extends Job {
       'arguments': arguments,
       'workingDirectory': workingDirectory,
       'environment': environment,
-      'results': results
-          .map(
-            (result) => {
-              'exitCode': result.exitCode,
-              'stdout': result.stdout,
-              'stderr': result.stderr,
-              'error': result.error,
-            },
-          )
-          .toList(),
+      'stdoutLogPath': stdoutLogPath,
+      'stderrLogPath': stderrLogPath,
+      'errorLogPath': errorLogPath,
     };
   }
 }
@@ -130,34 +125,12 @@ class PeriodicJob extends Job {
       'arguments': arguments,
       'workingDirectory': workingDirectory,
       'environment': environment,
+      'stdoutLogPath': stdoutLogPath,
+      'stderrLogPath': stderrLogPath,
+      'errorLogPath': errorLogPath,
       'periodInSeconds': period.inSeconds,
-      'killRequested': killRequested,
-      'results': results
-          .map(
-            (result) => {
-              'exitCode': result.exitCode,
-              'stdout': result.stdout,
-              'stderr': result.stderr,
-              'error': result.error,
-            },
-          )
-          .toList(),
     };
   }
-}
-
-final class JobResult {
-  int? exitCode;
-  String stdout;
-  String stderr;
-  String error;
-
-  JobResult({
-    this.exitCode,
-    this.stdout = '',
-    this.stderr = '',
-    this.error = '',
-  });
 }
 
 enum JobType {

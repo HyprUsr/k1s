@@ -93,6 +93,9 @@ final class CreateJobCommand extends Command {
   final Map<String, String> environment;
   final JobType jobType;
   final int? periodInSeconds;
+  final String? stdoutLogPath;
+  final String? stderrLogPath;
+  final String? errorLogPath;
 
   CreateJobCommand({
     required this.id,
@@ -102,6 +105,9 @@ final class CreateJobCommand extends Command {
     this.workingDirectory = '',
     this.environment = const {},
     this.periodInSeconds,
+    this.stdoutLogPath,
+    this.stderrLogPath,
+    this.errorLogPath,
   }) : super(command: ClientCommand.createJob);
 
   @override
@@ -116,6 +122,9 @@ final class CreateJobCommand extends Command {
         'environment': environment,
         'periodInSeconds': periodInSeconds,
         'type': jobType.type,
+        'stdoutLogPath': stdoutLogPath,
+        'stderrLogPath': stderrLogPath,
+        'errorLogPath': errorLogPath,
       },
     };
   }

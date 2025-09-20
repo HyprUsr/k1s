@@ -19,10 +19,12 @@ class JobManager {
   Map<String, Job> get jobs => Map.unmodifiable(_jobs);
 
   Future<void> _processJob(Job job) async {
+    final stdoutFile = File(job.stdoutLogPath ?? 'stdout_${job.id}.log');
+    final stderrFile = File(job.stderrLogPath ?? 'stderr_${job.id}.log');
+    final errorLogFile = File(job.errorLogPath ?? 'error_${job.id}.log');
     if (job is ContinuousJob) {
       while (job.killRequested == false &&
           (job.failedCount < ContinuousJob.maxFailedCount)) {
-        final jobResult = JobResult();
         try {
           job.process = await Process.start(
             job.executable,
@@ -34,26 +36,31 @@ class JobManager {
 
           // Listen to the process's stdout stream
           job.process!.stdout.transform(utf8.decoder).listen((data) {
-            // process.kill(ProcessSignal.sigint);
-            print('${job.id} 💡 STDOUT: $data');
-            jobResult.stdout += data;
+            stdoutFile.writeAsStringSync(
+              '[${job.id}]: $data${Platform.lineTerminator}',
+              mode: FileMode.append,
+              flush: true,
+            );
           });
 
           // Listen to the process's stderr stream
           job.process!.stderr.transform(utf8.decoder).listen((data) {
-            print('${job.id} ❗ STDERR: $data');
-            jobResult.stderr += data;
+            stderrFile.writeAsStringSync(
+              '[${job.id}]: $data${Platform.lineTerminator}',
+              mode: FileMode.append,
+              flush: true,
+            );
           });
 
           // Wait for the process to exit
-          jobResult.exitCode = await job.process!.exitCode;
-          print('${job.id} 🔴 Process exited with code: ${jobResult.exitCode}');
+          await job.process!.exitCode;
         } catch (e) {
           job.failedCount += 1;
-          jobResult.error = e.toString();
-          print('Error running job ${job.id}: $e');
-        } finally {
-          job.results.add(jobResult);
+          errorLogFile.writeAsStringSync(
+            '[${job.id}]: $e${Platform.lineTerminator}',
+            mode: FileMode.append,
+            flush: true,
+          );
         }
       }
     } else if (job is OneTimeJob) {
@@ -63,17 +70,24 @@ class JobManager {
           job.arguments,
           workingDirectory: job.workingDirectory,
           environment: job.environment,
+          includeParentEnvironment: false,
         );
-        job.results.add(
-          JobResult(
-            exitCode: result.exitCode,
-            stdout: result.stdout,
-            stderr: result.stderr,
-          ),
+        stdoutFile.writeAsStringSync(
+          '[${job.id}]: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}',
+          mode: FileMode.append,
+          flush: true,
+        );
+        stderrFile.writeAsStringSync(
+          '[${job.id}]: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}',
+          mode: FileMode.append,
+          flush: true,
         );
       } catch (e) {
-        print('Error running job ${job.id}: $e');
-        job.results.add(JobResult(error: e.toString()));
+        errorLogFile.writeAsStringSync(
+          '[${job.id}]: $e${Platform.lineTerminator}',
+          mode: FileMode.append,
+          flush: true,
+        );
       }
     } else if (job is PeriodicJob) {
       job.timer = Timer.periodic(job.period, (timer) async {
@@ -87,17 +101,26 @@ class JobManager {
             job.arguments,
             workingDirectory: job.workingDirectory,
             environment: job.environment,
+            includeParentEnvironment: false,
           );
-          job.results.add(
-            JobResult(
-              exitCode: result.exitCode,
-              stdout: result.stdout,
-              stderr: result.stderr,
-            ),
+          // print('stdout: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}');
+          stdoutFile.writeAsStringSync(
+            '[${job.id}]: ${utf8.decoder.convert(result.stdout)}${Platform.lineTerminator}',
+            mode: FileMode.append,
+            flush: true,
+          );
+          // print('stderr: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}');
+          stderrFile.writeAsStringSync(
+            '[${job.id}]: ${utf8.decoder.convert(result.stderr)}${Platform.lineTerminator}',
+            mode: FileMode.append,
+            flush: true,
           );
         } catch (e) {
-          print('Error running job ${job.id}: $e');
-          job.results.add(JobResult(error: e.toString()));
+          errorLogFile.writeAsStringSync(
+            '[${job.id}]: $e${Platform.lineTerminator}',
+            mode: FileMode.append,
+            flush: true,
+          );
         }
       });
     }
