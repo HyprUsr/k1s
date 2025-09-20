@@ -5,6 +5,13 @@ import 'package:args/args.dart';
 import 'package:k1s/commands.dart';
 import 'package:k1s/job.dart';
 
+// dart run bin/client.dart -c get-all-jobs
+// dart run bin/client.dart -c get-job-by-id -i job1
+// dart run bin/client.dart -c create-job -i job1 -t one-time -x /path/to/executable -a "arg1 arg2" -w /working/dir -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c create-job -i job2 -t periodic -x /path/to/executable -a "arg1 arg2" -w /working/dir -r 60 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c create-job -i job3 -t continuous -x /path/to/executable -a "arg1 arg2" -w /working/dir -m 5 -e "KEY1=VALUE1" -e "KEY2=VALUE2"
+// dart run bin/client.dart -c kill-job -i job3
+// dart run bin/client.dart -c delete-job -i job1
 void main(List<String> arguments) async {
   var parser = ArgParser();
   parser.addOption('port', abbr: 'p', defaultsTo: '4567', help: 'Server port');

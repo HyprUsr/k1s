@@ -5,6 +5,7 @@ import 'package:k1s/command_processor.dart';
 import 'package:k1s/job_manager.dart';
 import 'package:toml/toml.dart';
 
+// dart run bin/server.dart -c /path/to/config.toml
 void main(List<String> args) async {
   int port = 4567;
 
