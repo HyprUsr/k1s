@@ -121,6 +121,10 @@ class JobManager {
             mode: FileMode.append,
             flush: true,
           );
+          job.failedCount += 1;
+          if (job.maxRetry != -1 && job.failedCount >= job.maxRetry) {
+            timer.cancel();
+          }
         }
       });
     }

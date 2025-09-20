@@ -99,6 +99,8 @@ class PeriodicJob extends Job {
   final Duration period;
   bool _killRequested = false;
   Timer? timer;
+  int maxRetry;
+  int failedCount = 0;
 
   PeriodicJob({
     required super.id,
@@ -107,6 +109,10 @@ class PeriodicJob extends Job {
     required super.workingDirectory,
     required super.environment,
     required this.period,
+    this.maxRetry = 5,
+    super.stdoutLogPath,
+    super.stderrLogPath,
+    super.errorLogPath,
   }) : super(jobType: JobType.periodic);
 
   void kill({ProcessSignal signal = ProcessSignal.sigint}) {
@@ -129,6 +135,7 @@ class PeriodicJob extends Job {
       'stderrLogPath': stderrLogPath,
       'errorLogPath': errorLogPath,
       'periodInSeconds': period.inSeconds,
+      'failedCount': failedCount,
     };
   }
 }
