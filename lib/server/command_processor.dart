@@ -67,6 +67,7 @@ class CommandProcessor {
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
+        maxRetry: jobData['maxRetry'] ?? 5,
       );
     } else if (jobData['type'] == JobType.oneTime.type) {
       job = OneTimeJob(

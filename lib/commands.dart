@@ -44,6 +44,11 @@ abstract class Command {
           jobType:
               JobType.fromType(jobData['type']) ??
               (throw ArgumentError('Invalid or missing job type')),
+          maxRetry: jobData['maxRetry'],
+          periodInSeconds: jobData['periodInSeconds'],
+          stdoutLogPath: jobData['stdoutLogPath'],
+          stderrLogPath: jobData['stderrLogPath'],
+          errorLogPath: jobData['errorLogPath'],
         );
       case ClientCommand.killJob:
         final jobId = json['jobId'];
@@ -93,6 +98,7 @@ final class CreateJobCommand extends Command {
   final Map<String, String> environment;
   final JobType jobType;
   final int? periodInSeconds;
+  final int? maxRetry;
   final String? stdoutLogPath;
   final String? stderrLogPath;
   final String? errorLogPath;
@@ -105,6 +111,7 @@ final class CreateJobCommand extends Command {
     this.workingDirectory = '',
     this.environment = const {},
     this.periodInSeconds,
+    this.maxRetry,
     this.stdoutLogPath,
     this.stderrLogPath,
     this.errorLogPath,
@@ -121,6 +128,7 @@ final class CreateJobCommand extends Command {
         'workingDirectory': workingDirectory,
         'environment': environment,
         'periodInSeconds': periodInSeconds,
+        'maxRetry': maxRetry,
         'type': jobType.type,
         'stdoutLogPath': stdoutLogPath,
         'stderrLogPath': stderrLogPath,

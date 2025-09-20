@@ -37,6 +37,7 @@ void main(List<String> arguments) async {
     help: 'Environment variables',
   );
   parser.addOption('period', abbr: 'r', help: 'Job period in seconds');
+  parser.addOption('maxRetry', abbr: 'm', help: 'Job max retry when failed');
   var args = parser.parse(arguments);
 
   final commandType = ClientCommand.fromCommand(args.option('command'));
@@ -93,6 +94,17 @@ void main(List<String> arguments) async {
           exit(1);
         }
       }
+      int? maxRetry;
+      if (jobType == JobType.continuous) {
+        final maxRetryStr = args.option('maxRetry');
+        if (maxRetryStr != null) {
+          maxRetry = int.tryParse(maxRetryStr);
+          if (maxRetry == null || maxRetry < 0) {
+            print('Invalid maxRetry: $maxRetryStr');
+            exit(1);
+          }
+        }
+      }
 
       command = CreateJobCommand(
         id: jobId,
@@ -102,6 +114,7 @@ void main(List<String> arguments) async {
         environment: environment,
         jobType: jobType,
         periodInSeconds: periodSeconds,
+        maxRetry: maxRetry,
       );
       break;
     case ClientCommand.killJob:

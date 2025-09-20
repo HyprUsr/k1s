@@ -29,9 +29,8 @@ abstract class Job {
 }
 
 class ContinuousJob extends Job {
-  static const int maxFailedCount = 5;
-
   bool _killRequested = false;
+  int maxRetry;
   int failedCount = 0;
 
   ContinuousJob({
@@ -43,6 +42,7 @@ class ContinuousJob extends Job {
     super.stdoutLogPath,
     super.stderrLogPath,
     super.errorLogPath,
+    this.maxRetry = 5,
   }) : super(jobType: JobType.continuous);
 
   void kill({ProcessSignal signal = ProcessSignal.sigint}) {

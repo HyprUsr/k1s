@@ -24,7 +24,7 @@ class JobManager {
     final errorLogFile = File(job.errorLogPath ?? 'error_${job.id}.log');
     if (job is ContinuousJob) {
       while (job.killRequested == false &&
-          (job.failedCount < ContinuousJob.maxFailedCount)) {
+          (job.maxRetry == -1 || job.failedCount < job.maxRetry)) {
         try {
           job.process = await Process.start(
             job.executable,
