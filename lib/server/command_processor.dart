@@ -60,7 +60,7 @@ class CommandProcessor {
     }
 
     Job job;
-    if (jobData['type'] == 'continuous') {
+    if (jobData['type'] == JobType.continuous.type) {
       job = ContinuousJob(
         id: jobData['id'],
         executable: jobData['executable'],
@@ -68,7 +68,7 @@ class CommandProcessor {
         workingDirectory: jobData['workingDirectory'],
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
       );
-    } else if (jobData['type'] == 'one-off') {
+    } else if (jobData['type'] == JobType.oneTime.type) {
       job = OneTimeJob(
         id: jobData['id'],
         executable: jobData['executable'],
@@ -76,14 +76,14 @@ class CommandProcessor {
         workingDirectory: jobData['workingDirectory'],
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
       );
-    } else if (jobData['type'] == 'cron') {
+    } else if (jobData['type'] == JobType.periodic.type) {
       job = PeriodicJob(
         id: jobData['id'],
         executable: jobData['executable'],
         arguments: List<String>.from(jobData['arguments'] ?? []),
         workingDirectory: jobData['workingDirectory'],
         environment: Map<String, String>.from(jobData['environment'] ?? {}),
-        schedule: Duration(seconds: jobData['scheduleInSeconds']),
+        period: Duration(seconds: jobData['periodInSeconds']),
       );
     } else {
       writer('${jsonEncode({'error': 'Invalid job type'})}\n');

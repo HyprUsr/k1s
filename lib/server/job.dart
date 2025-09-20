@@ -101,7 +101,7 @@ class OneTimeJob extends Job {
 }
 
 class PeriodicJob extends Job {
-  final Duration schedule;
+  final Duration period;
   bool _killRequested = false;
   Timer? timer;
 
@@ -111,7 +111,7 @@ class PeriodicJob extends Job {
     required super.arguments,
     required super.workingDirectory,
     required super.environment,
-    required this.schedule,
+    required this.period,
   }) : super(jobType: JobType.periodic);
 
   void kill({ProcessSignal signal = ProcessSignal.sigint}) {
@@ -130,7 +130,7 @@ class PeriodicJob extends Job {
       'arguments': arguments,
       'workingDirectory': workingDirectory,
       'environment': environment,
-      'schedule': schedule.inSeconds,
+      'periodInSeconds': period.inSeconds,
       'killRequested': killRequested,
       'results': results
           .map(

@@ -76,7 +76,7 @@ class JobManager {
         job.results.add(JobResult(error: e.toString()));
       }
     } else if (job is PeriodicJob) {
-      job.timer = Timer.periodic(job.schedule, (timer) async {
+      job.timer = Timer.periodic(job.period, (timer) async {
         if (job.killRequested) {
           timer.cancel();
           return;

@@ -36,7 +36,7 @@ void main(List<String> arguments) async {
     abbr: 'e',
     help: 'Environment variables',
   );
-  parser.addOption('period', abbr: 'r', help: 'Cron job period in seconds');
+  parser.addOption('period', abbr: 'r', help: 'Job period in seconds');
   var args = parser.parse(arguments);
 
   final commandType = ClientCommand.fromCommand(args.option('command'));
@@ -84,7 +84,7 @@ void main(List<String> arguments) async {
       int? periodSeconds;
       if (jobType == JobType.periodic) {
         if (periodStr == null) {
-          print('Period is required for cron job');
+          print('Period is required for periodic job');
           exit(1);
         }
         periodSeconds = int.tryParse(periodStr);

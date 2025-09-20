@@ -114,6 +114,7 @@ final class CreateJobCommand extends Command {
         'arguments': arguments,
         'workingDirectory': workingDirectory,
         'environment': environment,
+        'periodInSeconds': periodInSeconds,
         'type': jobType.type,
       },
     };
